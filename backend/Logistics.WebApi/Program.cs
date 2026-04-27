@@ -9,6 +9,8 @@ using Scalar.AspNetCore;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddEnvironmentVariables();
+bool enableApiDocs = builder.Configuration.GetValue<bool>("EnableApiDocs");
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
@@ -30,13 +32,15 @@ using (IServiceScope scope = app.Services.CreateScope())
     db.Database.EnsureCreated();
 }
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || enableApiDocs)
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
 
 app.UseCors("AllowFrontend");
+
+app.MapGet("/health", () => Results.Ok("Healthy"));
 
 app.MapPost("/api/orders", async (CreateOrderCommand command, IMediator mediatR) =>
 {
